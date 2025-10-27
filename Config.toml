@@ -1,0 +1,8 @@
+watch_path = "./input"
+output_path = "./output"
+root_tag = "root"
+
+[mappings]
+column1 = "root.column1"
+column2 = "root.extra.column2"
+column3 = "root.extra.column3"
