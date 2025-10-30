@@ -1,6 +1,11 @@
 watch_path = "./input"
 output_path = "./output"
+
 root_tag = "root"
+
+input_csv = true
+output_xml = false
+output_json = true
 
 [mappings]
 column1 = "column1"

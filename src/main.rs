@@ -8,6 +8,9 @@ struct AppConfig {
     watch_path: String,
     output_path: String,
     root_name: Option<String>,
+    input_csv: bool,
+    output_json: bool,
+    output_xml: bool,
     mappings: HashMap<String, String>,
 }
 
@@ -91,16 +94,21 @@ fn files_in_input(config: &AppConfig) {
     let x = fs::read_dir(&config.watch_path).expect("Cannot read files in /input");
     for path in x {
         //println!("{:?}",path.unwrap().path().display());
+        let config = load_config();
         let file_path = path.unwrap().path();
         let file_name = file_path.file_name().unwrap();
-        let file_ = file_name.to_str().unwrap().replace(".csv", "");
-        let config = load_config();
-        let json = csv_to_json(&file_path, &config);
-
-        let conf = serde_json::from_str(&json).unwrap();
-        fs::write(format!("{}.json", config.output_path + "/" + &file_), json).unwrap();
-        let xml = json_to_xml(&conf, "");
-        fs::write(format!("{}.xml", "./output/".to_string() + &file_), xml).unwrap();
+        if config.input_csv == true {
+            let file_ = file_name.to_str().unwrap().replace(".csv", "");
+            let json = csv_to_json(&file_path, &config);
+            let conf = serde_json::from_str(&json).unwrap();
+            if config.output_json == true {
+                fs::write(format!("{}.json", config.output_path + "/" + &file_), json).unwrap();
+            }
+            if config.output_xml == true {
+                let xml = json_to_xml(&conf, "");
+                fs::write(format!("{}.xml", "./output/".to_string() + &file_), xml).unwrap();
+            }
+        };
     }
 }
 
