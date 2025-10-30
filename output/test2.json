@@ -1,9 +1,0 @@
-{
-  "root": {
-    "column1": "10",
-    "extra": {
-      "column2": "20",
-      "column3": "30"
-    }
-  }
-}

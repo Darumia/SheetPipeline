@@ -1,12 +1,12 @@
 use csv::ReaderBuilder;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{array, collections::HashMap, fs, path::PathBuf};
 
 #[derive(Deserialize)]
 struct AppConfig {
     watch_path: String,
-    output_path:String,
+    output_path: String,
     root_name: Option<String>,
     mappings: HashMap<String, String>,
 }
@@ -17,9 +17,9 @@ fn load_config() -> AppConfig {
     toml::from_str(&content).expect("TOML is invalid")
 }
 
-fn csv_to_json(file_path: &PathBuf, config: &AppConfig) -> String{
+fn csv_to_json(file_path: &PathBuf, config: &AppConfig) -> String {
     // ReaderBuilder needs more options, like delimiter, encoding,and if the csv is has key horizontal or
-    // vertial 
+    // vertial
     let mut rdr = ReaderBuilder::new()
         .flexible(true)
         .from_path(file_path)
@@ -36,8 +36,8 @@ fn csv_to_json(file_path: &PathBuf, config: &AppConfig) -> String{
             insert_in_root(&mut root, mapped_key, value);
         }
     }
-        let json = serde_json::to_string_pretty(&root).unwrap();
-        return json
+    let json = serde_json::to_string_pretty(&root).unwrap();
+    return json;
 }
 
 fn insert_in_root(root: &mut Value, key: &str, value: &str) {
@@ -61,16 +61,46 @@ fn insert_in_root(root: &mut Value, key: &str, value: &str) {
     }
 }
 
+fn json_to_xml(json: &Value, tag: &str) -> String {
+    match json {
+        Value::Object(map) => {
+            let inner = map
+                .iter()
+                .map(|(k, v)| json_to_xml(v, k))
+                .collect::<Vec<_>>()
+                .join("");
+            if tag == "" {
+                format!("{inner}", inner = inner)
+            } else {
+                format!("<{tag}>{inner}</{tag}>", tag = tag, inner = inner)
+            }
+        }
+        Value::Array(arr) => arr
+            .iter()
+            .map(|v| json_to_xml(v, tag))
+            .collect::<Vec<_>>()
+            .join(""),
+        Value::String(s) => format!("<{tag}>{}</{tag}>", s, tag = tag),
+        Value::Number(n) => format!("<{tag}>{}</{tag}>", n, tag = tag),
+        Value::Bool(b) => format!("<{tag}>{}</{tag}>", b, tag = tag),
+        Value::Null => format!("<{tag}/>", tag = tag),
+    }
+}
+
 fn files_in_input(config: &AppConfig) {
     let x = fs::read_dir(&config.watch_path).expect("Cannot read files in /input");
     for path in x {
         //println!("{:?}",path.unwrap().path().display());
         let file_path = path.unwrap().path();
-        let mut file_name = file_path.file_name().unwrap();
+        let file_name = file_path.file_name().unwrap();
         let file_ = file_name.to_str().unwrap().replace(".csv", "");
         let config = load_config();
         let json = csv_to_json(&file_path, &config);
-        fs::write(format!("{}.json", config.output_path+"/"+&file_), json).unwrap()
+
+        let conf = serde_json::from_str(&json).unwrap();
+        fs::write(format!("{}.json", config.output_path + "/" + &file_), json).unwrap();
+        let xml = json_to_xml(&conf, "");
+        fs::write(format!("{}.xml", "./output/".to_string() + &file_), xml).unwrap();
     }
 }
 
