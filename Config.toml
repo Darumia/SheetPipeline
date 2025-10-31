@@ -3,7 +3,8 @@ output_path = "./output"
 
 root_tag = "root"
 
-input_csv = true
+input_csv = false
+input_excel = true
 output_xml = false
 output_json = true
 

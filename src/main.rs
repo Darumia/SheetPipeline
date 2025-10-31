@@ -1,3 +1,4 @@
+use calamine::{Data, Error, RangeDeserializerBuilder, Reader, Xlsx, open_workbook};
 use csv::ReaderBuilder;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -9,6 +10,7 @@ struct AppConfig {
     output_path: String,
     root_name: Option<String>,
     input_csv: bool,
+    input_excel: bool,
     output_json: bool,
     output_xml: bool,
     mappings: HashMap<String, String>,
@@ -90,6 +92,31 @@ fn json_to_xml(json: &Value, tag: &str) -> String {
     }
 }
 
+fn excel_to_json(file_path: &PathBuf, config: &AppConfig) {
+    let mut workbook: Xlsx<_> = open_workbook(file_path).expect("Excel file does not exist");
+    let range = workbook
+        .worksheet_range("Sheet1")
+        .expect("Sheet does not exist");
+    // range is using coordinates, I should make some sort of maping like:
+    // if First letter is ascii map 0 to 25 A to Z
+    // if the second letter is also ascii map first ascii coordinate+1 * 26 
+    // - then use the previous logic for
+    // the second letter (map ascii 0 to 25 A to Z) TODO
+
+    if let Some(cell) = range.get((0, 0)) {
+        match cell {
+            Data::String(s) => println!("A1: {}", s),
+            Data::Float(s) => println!("A1: {}", s),
+            Data::Int(s) => println!("A1: {}", s),
+            Data::Bool(s) => println!("A1: {}", s),
+            Data::Empty => println!("A1 is empty"),
+            _ => println!("A1 has something else"),
+        }
+    } else {
+        println!("Cant find cell");
+    }
+}
+
 fn files_in_input(config: &AppConfig) {
     let x = fs::read_dir(&config.watch_path).expect("Cannot read files in /input");
     for path in x {
@@ -108,7 +135,11 @@ fn files_in_input(config: &AppConfig) {
                 let xml = json_to_xml(&conf, "");
                 fs::write(format!("{}.xml", "./output/".to_string() + &file_), xml).unwrap();
             }
-        };
+        }
+        let config = load_config();
+        if config.input_excel == true {
+            excel_to_json(&file_path, &config);
+        }
     }
 }
 
